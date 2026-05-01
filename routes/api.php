@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\CustomerController; // Import Controller Customer
+use App\Http\Controllers\Admin\OrderController;    // Import Controller Order
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -24,4 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/customers', [CustomerController::class, 'store']);
     Route::put('/customers/{id}', [CustomerController::class, 'update']);
     Route::delete('/customers/{id}', [CustomerController::class, 'destroy']);
+
+    // CRUD Order
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders/{id}/next-status', [OrderController::class, 'nextStatus']);
+    Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
 });

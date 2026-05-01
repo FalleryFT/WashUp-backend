@@ -30,11 +30,13 @@ return new class extends Migration
 
             // Status — sesuai badge di tampilan
             $table->enum('status', [
+                'Order Diterima',
+                'Sedang Di Pilah',
                 'Sedang Dicuci',
                 'Siap Diambil',
                 'Selesai',
                 'Dibatalkan',
-            ])->default('Sedang Dicuci');
+            ])->default('Order Diterima');
 
             // Timeline progress (JSON array 4 step)
             // Contoh: ["Order di terima\n17 Jan 10.30", "Sedang Di Pilah\n...", null, null]
