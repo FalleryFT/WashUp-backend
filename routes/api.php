@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\CustomerController; // Import Controller Customer
 use App\Http\Controllers\Admin\OrderController;    // Import Controller Order
+use App\Http\Controllers\Admin\DashboardController; // Import Controller Dashboard
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -30,4 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders/{id}/next-status', [OrderController::class, 'nextStatus']);
     Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
+
+    // Dashboard Admin
+    Route::get('/admin/dashboard', [DashboardController::class, 'index']);
 });
