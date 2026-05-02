@@ -44,7 +44,17 @@ class OrderController extends Controller
             $query->where('customer_type', $type);
         }
 
-        // 4. Fitur Sort (Terbaru / Terlama)
+        // 4. Fitur Sortir Berdasarkan Bulan (BARU)
+        if ($request->filled('month') && $request->month !== 'Semua Bulan') {
+            // Parameter 'month' dikirimkan dalam format 'YYYY-MM' (contoh: 2026-05)
+            $dateParts = explode('-', $request->month);
+            if (count($dateParts) === 2) {
+                $query->whereYear('created_at', $dateParts[0])
+                      ->whereMonth('created_at', $dateParts[1]);
+            }
+        }
+
+        // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
             $query->orderBy('created_at', 'asc');
         } else {
@@ -68,7 +78,6 @@ class OrderController extends Controller
     {
         $order = Order::with(['items', 'service'])->findOrFail($id);
         
-        // Urutan status sesuai dengan Enum di file migrasi
         $statusSequence = [
             'Order Diterima',
             'Sedang Di Pilah',
@@ -83,7 +92,6 @@ class OrderController extends Controller
             $nextStatus = $statusSequence[$currentIndex + 1];
             $order->status = $nextStatus;
 
-            // Mengambil array timeline dari DB (otomatis dicast jadi array oleh model)
             $timeline = $order->timeline;
             if (!is_array($timeline) || empty($timeline)) {
                 $timeline = [null, null, null, null];
@@ -91,7 +99,6 @@ class OrderController extends Controller
 
             $nowStr = Carbon::now()->format('d M H.i');
 
-            // Sinkronisasi data timeline berdasarkan step yang tercapai
             if ($nextStatus === 'Sedang Di Pilah') {
                 $timeline[0] = "Order di terima\n" . $order->created_at->format('d M H.i');
                 $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
@@ -121,11 +128,21 @@ class OrderController extends Controller
         ], 400);
     }
 
-    // ─── CANCEL ORDER (Dibatalkan) ───────────────────────────────────────────
+    // ─── CANCEL ATAU SOFT DELETE ORDER ─────────────────────────────────────────
     public function destroy($id)
     {
         $order = Order::with(['items', 'service'])->findOrFail($id);
         
+        // JIKA PESANAN SUDAH SELESAI / DIBATALKAN -> LAKUKAN SOFT DELETE
+        if (in_array($order->status, ['Selesai', 'Dibatalkan'])) {
+            $order->delete(); // Ini akan memicu soft delete jika model menggunakan trait SoftDeletes
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan berhasil dihapus secara permanen dari daftar aktif.'
+            ]);
+        }
+
+        // JIKA PESANAN BELUM SELESAI/DIBATALKAN -> UBAH STATUS MENJADI DIBATALKAN
         $order->status = 'Dibatalkan';
 
         $timeline = $order->timeline;
@@ -133,7 +150,6 @@ class OrderController extends Controller
             $timeline = [null, null, null, null];
         }
         
-        // Update langkah terakhir dengan status pembatalan
         $timeline[3] = "Dibatalkan\n" . Carbon::now()->format('d M H.i');
         
         $order->timeline = $timeline;
@@ -157,13 +173,13 @@ class OrderController extends Controller
             'tgl' => $order->order_date ? $order->order_date->format('d F Y') : '-',
             'estimasi' => $order->estimated_date ? $order->estimated_date->format('d F Y') : '-',
             'status' => $order->status,
-            'tipe' => ucfirst($order->customer_type), // Konversi dari 'member' ke 'Member'
+            'tipe' => ucfirst($order->customer_type),
             'totalHarga' => 'Rp ' . number_format($order->total_price, 0, ',', '.'),
             'layanan' => $order->service ? $order->service->name : '-',
             'items' => $order->items->map(function ($item) {
                 return [
                     'item' => $item->item_name,
-                    'jumlah' => floatval($item->quantity) . ' ' . $item->unit, // Mengembalikan format seperti: 2 kg / 1 pcs
+                    'jumlah' => floatval($item->quantity) . ' ' . $item->unit,
                     'harga' => 'Rp ' . number_format($item->unit_price, 0, ',', '.'),
                     'sub' => 'Rp ' . number_format($item->subtotal, 0, ',', '.'),
                 ];
