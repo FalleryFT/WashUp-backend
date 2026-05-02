@@ -26,10 +26,12 @@ class OrderController extends Controller
         // 2. Filter Tab Status
         if ($request->filled('status') && $request->status !== 'SEMUA') {
             $statusMap = [
-                'PROSES' => ['Order Diterima', 'Sedang Di Pilah', 'Sedang Dicuci'],
-                'SIAP AMBIL' => ['Siap Diambil'],
-                'SELESAI' => ['Selesai'],
-                'DIBATALKAN' => ['Dibatalkan'],
+                'Order Diterima' => ['Order Diterima'],
+                'Sedang DiPilah' => ['Sedang Di Pilah'],
+                'Sedang DiCuci'  => ['Sedang Dicuci'],
+                'SIAP AMBIL'     => ['Siap Diambil'],
+                'SELESAI'        => ['Selesai'],
+                'DIBATALKAN'     => ['Dibatalkan'],
             ];
             if (isset($statusMap[$request->status])) {
                 $query->whereIn('status', $statusMap[$request->status]);
@@ -38,11 +40,18 @@ class OrderController extends Controller
 
         // 3. Filter Tipe Pelanggan (Enum: member, non-member)
         if ($request->filled('customer_type') && $request->customer_type !== 'Semua Tipe') {
-            $type = strtolower($request->customer_type); // Ubah ke lowercase sesuai enum db ('member', 'non-member')
+            $type = strtolower($request->customer_type);
             $query->where('customer_type', $type);
         }
 
-        $orders = $query->latest()->get();
+        // 4. Fitur Sort (Terbaru / Terlama)
+        if ($request->filled('sort') && $request->sort === 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc'); // Default terbaru
+        }
+
+        $orders = $query->get();
 
         $formattedOrders = $orders->map(function ($order) {
             return $this->formatOrder($order);
