@@ -42,6 +42,7 @@ return new class extends Migration
             // Contoh: ["Order di terima\n17 Jan 10.30", "Sedang Di Pilah\n...", null, null]
             $table->json('timeline')->nullable();
 
+            $table->softDeletes();
             $table->date('order_date');       // tanggal order
             $table->date('estimated_date');   // estimasi selesai
 
