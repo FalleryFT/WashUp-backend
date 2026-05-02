@@ -6,6 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\CustomerController; // Import Controller Customer
 use App\Http\Controllers\Admin\OrderController;    // Import Controller Order
 use App\Http\Controllers\Admin\DashboardController; // Import Controller Dashboard
+use App\Http\Controllers\Admin\FinancialReportController; // Import Controller FinancialReport
+
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -34,4 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard Admin
     Route::get('/admin/dashboard', [DashboardController::class, 'index']);
+
+    // Laporan Keuangan
+    Route::get('/admin/reports', [FinancialReportController::class, 'index']);
+    Route::get('/admin/reports/export', [FinancialReportController::class, 'export']);
 });
