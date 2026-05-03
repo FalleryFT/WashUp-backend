@@ -154,7 +154,7 @@ class NewTransactionController extends Controller
             'service_id'     => $kiloanService->id,
             'weight'         => $data['weight'],
             'total_price'    => $totalPrice,
-            'status'         => 'Sedang Dicuci',
+            'status'         => 'Order Diterima',
             'timeline'       => $timeline,
             'order_date'     => Carbon::today(),
             'estimated_date' => Carbon::tomorrow(),
