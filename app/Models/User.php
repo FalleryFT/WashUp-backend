@@ -25,6 +25,26 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+     // ── Relasi ────────────────────────────────────────────────────────────────
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+ 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+ 
+    public function sentChats()
+    {
+        return $this->hasMany(Chat::class, 'sender_id');
+    }
+ 
+    public function receivedChats()
+    {
+        return $this->hasMany(Chat::class, 'receiver_id');
+    }
     // Kolom untuk soft deletes
     protected $dates = ['deleted_at'];
 }
