@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\NewTransactionController; // Import Controller Ne
 use App\Http\Controllers\LandingPageController; // Import Controller LandingPage  
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerLacakController; // Import Controller CustomerLacak
+use App\Http\Controllers\Customer\CustomerHistoryController; // Import Controller CustomerHistory
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -70,4 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Lacak Pesanan Customer
     Route::get('/customer/orders', [CustomerLacakController::class, 'index']);
     Route::get('/customer/orders/{nota}', [CustomerLacakController::class, 'show']);
+
+    // Riwayat Pesanan Customer
+    Route::get('/customer/history', [CustomerHistoryController::class, 'index']);
 });

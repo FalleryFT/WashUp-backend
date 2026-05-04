@@ -41,13 +41,14 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'    => 'required|string|max:255',
-            'phone'   => 'required|string|max:20|unique:users,phone',
-            'address' => 'nullable|string',
+            'name'     => 'required|string|max:255',
+            'phone'    => 'required|string|max:20|unique:users,phone',
+            'address'  => 'nullable|string',
+            'password' => 'required|string|min:6', // Validasi password ditambahkan
         ]);
 
-        // Sesuai dengan data dummy, password default diset 'user123'
-        $validated['password'] = Hash::make('user123');
+        // Password di-hash sebelum masuk database
+        $validated['password'] = Hash::make($request->password);
         $validated['role']     = 'customer';
 
         $customer = User::create($validated);
