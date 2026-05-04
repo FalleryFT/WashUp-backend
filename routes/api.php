@@ -8,7 +8,8 @@ use App\Http\Controllers\Admin\OrderController;    // Import Controller Order
 use App\Http\Controllers\Admin\DashboardController; // Import Controller Dashboard
 use App\Http\Controllers\Admin\FinancialReportController; // Import Controller FinancialReport
 use App\Http\Controllers\Admin\PriceSettingController; // Import Controller PriceSetting
-use App\Http\Controllers\Admin\NewTransactionController; // Import Controller NewTransaction    
+use App\Http\Controllers\Admin\NewTransactionController; // Import Controller NewTransaction  
+use App\Http\Controllers\LandingPageController; // Import Controller LandingPage  
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -16,6 +17,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::prefix('landing')->group(function () {
+    Route::get('services', [LandingPageController::class, 'services']);
+    Route::get('track',    [LandingPageController::class, 'track']);
+});
 
 // ─── PROTECTED ROUTES (Harus Login) ──────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
