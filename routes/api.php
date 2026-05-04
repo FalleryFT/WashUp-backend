@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\FinancialReportController; // Import Controller F
 use App\Http\Controllers\Admin\PriceSettingController; // Import Controller PriceSetting
 use App\Http\Controllers\Admin\NewTransactionController; // Import Controller NewTransaction  
 use App\Http\Controllers\LandingPageController; // Import Controller LandingPage  
+use App\Http\Controllers\Customer\CustomerDashboardController;
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -62,4 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/transactions/search-member', [NewTransactionController::class, 'searchMember']);
     Route::post('/admin/transactions', [NewTransactionController::class, 'store']);
 
+    // Dashboard Customer
+    Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index']);
 });
