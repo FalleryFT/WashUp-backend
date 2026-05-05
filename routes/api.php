@@ -13,6 +13,7 @@ use App\Http\Controllers\LandingPageController; // Import Controller LandingPage
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerLacakController; // Import Controller CustomerLacak
 use App\Http\Controllers\Customer\CustomerHistoryController; // Import Controller CustomerHistory
+use App\Http\Controllers\Customer\CustomerProfileController; // Import Controller CustomerProfile
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -74,4 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Riwayat Pesanan Customer
     Route::get('/customer/history', [CustomerHistoryController::class, 'index']);
+
+    // Profil Customer
+    Route::get('/customer/profile', [CustomerProfileController::class, 'show']);
+    Route::put('/customer/profile', [CustomerProfileController::class, 'update']);
 });

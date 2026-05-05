@@ -20,10 +20,9 @@ class UserSeeder extends Seeder
         ]);
 
         // ── CUSTOMER — sesuai CustomerData.jsx dummy data ──────────────────────
-        // customer_id di frontend disimpan sebagai name (username login)
         $customers = [
             [
-                'name'    => 'daniel_spatzek',   // username login
+                'name'    => 'daniel_spatzek',
                 'display' => 'Daniel Spatzek',
                 'phone'   => '081234567890',
                 'address' => 'Jalan Kutai Utara No. 1, Kelurahan Sumber, Kecamatan Banjarsari, Kota Surakarta (Solo), Jawa Tengah 57138',
@@ -106,11 +105,19 @@ class UserSeeder extends Seeder
                 'address' => 'Jalan Ahmad Yani No. 15, Kota Malang, Jawa Timur 65115',
                 'pass'    => 'nisa2022',
             ],
+            // ── USER BARU: Udin ──────────────────────────────────────────────
+            [
+                'name'    => 'udin',
+                'display' => 'Udin',
+                'phone'   => '081299990000',
+                'address' => 'Jalan Soekarno-Hatta No. 9, Lowokwaru, Kota Malang, Jawa Timur 65141',
+                'pass'    => 'udin123',
+            ],
         ];
 
         foreach ($customers as $c) {
             User::create([
-                'name'     => $c['display'], // tampilan nama
+                'name'     => $c['display'],
                 'phone'    => $c['phone'],
                 'address'  => $c['address'],
                 'password' => Hash::make($c['pass']),
