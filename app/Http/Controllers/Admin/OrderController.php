@@ -27,7 +27,7 @@ class OrderController extends Controller
         if ($request->filled('status') && $request->status !== 'SEMUA') {
             $statusMap = [
                 'Order Diterima' => ['Order Diterima'],
-                'Sedang DiPilah' => ['Sedang Di Pilah'],
+                'Sedang DiPilah' => ['Sedang Dipilah'],
                 'Sedang DiCuci'  => ['Sedang Dicuci'],
                 'SIAP AMBIL'     => ['Siap Diambil'],
                 'SELESAI'        => ['Selesai'],
@@ -80,7 +80,7 @@ class OrderController extends Controller
         
         $statusSequence = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai'
@@ -99,14 +99,14 @@ class OrderController extends Controller
 
             $nowStr = Carbon::now()->format('d M H.i');
 
-            if ($nextStatus === 'Sedang Di Pilah') {
+            if ($nextStatus === 'Sedang Dipilah') {
                 $timeline[0] = "Order di terima\n" . $order->created_at->format('d M H.i');
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
+                $timeline[1] = "Sedang Dipilah\n" . $nowStr;
             } elseif ($nextStatus === 'Sedang Dicuci') {
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
-                $timeline[2] = "Sedang Di cuci\n" . $nowStr;
+                $timeline[1] = "Sedang Dipilah\n" . $nowStr;
+                $timeline[2] = "Sedang Dicuci\n" . $nowStr;
             } elseif ($nextStatus === 'Siap Diambil') {
-                $timeline[2] = "Sedang Di cuci\n" . $nowStr;
+                $timeline[2] = "Sedang Dicuci\n" . $nowStr;
                 $timeline[3] = "Siap Di ambil\n" . $nowStr;
             } elseif ($nextStatus === 'Selesai') {
                 $timeline[3] = "Selesai\n" . $nowStr;

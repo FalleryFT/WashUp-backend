@@ -28,7 +28,7 @@ class OrderSeeder extends Seeder
 
         $allStatuses = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai',
@@ -95,7 +95,7 @@ class OrderSeeder extends Seeder
         }
 
         // 4 pesanan BERURUTAN (progress aktif)
-        $progressStatuses = ['Order Diterima', 'Sedang Di Pilah', 'Sedang Dicuci', 'Siap Diambil'];
+        $progressStatuses = ['Order Diterima', 'Sedang Dipilah', 'Sedang Dicuci', 'Siap Diambil'];
         foreach ($progressStatuses as $idx => $progressStatus) {
             $orderDate   = now()->subDays(3 - $idx);
             $serviceName = $serviceNames[$idx % 2];
@@ -139,27 +139,27 @@ class OrderSeeder extends Seeder
                 null,
                 null,
             ],
-            'Sedang Di Pilah' => [
+            'Sedang Dipilah' => [
                 "Order di terima\n{$time}",
-                "Sedang Di Pilah\n{$time}",
+                "Sedang Di pilah\n{$time}",
                 null,
                 null,
             ],
             'Sedang Dicuci'   => [
                 "Order di terima\n{$time}",
-                "Sedang Di Pilah\n{$time}",
+                "Sedang Di pilah\n{$time}",
                 "Sedang Di cuci\n{$time}",
                 null,
             ],
             'Siap Diambil'    => [
                 "Order di terima\n{$time}",
-                "Sedang Di Pilah\n{$time}",
+                "Sedang Di pilah\n{$time}",
                 "Sedang Di cuci\n{$time}",
                 "Siap Di Ambil\n{$time}",
             ],
             'Selesai'         => [
                 "Order di terima\n{$time}",
-                "Sedang Di Pilah\n{$time}",
+                "Sedang Di pilah\n{$time}",
                 "Sedang Di cuci\n{$time}",
                 "Selesai\n{$time}",
             ],

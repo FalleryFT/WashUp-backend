@@ -31,7 +31,7 @@ return new class extends Migration
             // Status — sesuai badge di tampilan
             $table->enum('status', [
                 'Order Diterima',
-                'Sedang Di Pilah',
+                'Sedang Dipilah',
                 'Sedang Dicuci',
                 'Siap Diambil',
                 'Selesai',

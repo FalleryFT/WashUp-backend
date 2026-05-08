@@ -24,7 +24,7 @@ class DashboardController extends Controller
         'total_order'    => Order::whereDate('order_date', $today)->count(),
         
         // Semua cucian yang masih aktif (tidak dibatasi tanggal hari ini saja)
-        'cucian_proses'  => Order::whereIn('status', ['Order Diterima', 'Sedang Di Pilah', 'Sedang Dicuci'])
+        'cucian_proses'  => Order::whereIn('status', ['Order Diterima', 'Sedang Dipilah', 'Sedang Dicuci'])
                                  ->count(),
         
         // Pesanan yang statusnya berubah jadi 'Selesai' hari ini
