@@ -11,7 +11,6 @@ use Carbon\Carbon;
 class CustomerHistoryController extends Controller
 {
     // ─── Mapping nama bulan Indonesia → angka ─────────────────────────────────
-    // Sesuai array MONTHS di History.jsx
     private const BULAN_MAP = [
         'januari'   => 1,  'februari'  => 2,  'maret'     => 3,
         'april'     => 4,  'mei'       => 5,  'juni'      => 6,
@@ -19,34 +18,26 @@ class CustomerHistoryController extends Controller
         'oktober'   => 10, 'november'  => 11, 'desember'  => 12,
     ];
 
-    // ─── Mapping status → activeStep (4 step di TIMELINE_STEPS History.jsx) ──
-    // Step: 0=Order Diterima, 1=Sedang Dipilah, 2=Sedang Dicuci, 3=Siap Diambil
+    // ─── Mapping status → activeStep ──────────────────────────────────────────
     private const STEP_MAP = [
         'Order Diterima'  => 0,
-        'Sedang Di Pilah' => 1,  // ejaan DB
-        'Sedang Dipilah'  => 1,  // ejaan alternatif (toleransi)
+        'Sedang Di Pilah' => 1,
+        'Sedang Dipilah'  => 1,
         'Sedang Dicuci'   => 2,
         'Siap Diambil'    => 3,
-        'Selesai'         => 3,  // semua step done
-        'Dibatalkan'      => 0,  // hanya step pertama
+        'Selesai'         => 3,
+        'Dibatalkan'      => -1, // tidak mengisi timeline
+    ];
+
+    // ─── Label 4 step timeline (urut, sesuai TIMELINE_STEPS di History.jsx) ───
+    private const TIMELINE_LABELS = [
+        0 => 'Order Diterima',
+        1 => 'Sedang Dipilah',
+        2 => 'Sedang Dicuci',
+        3 => 'Siap Diambil',
     ];
 
     // ─── GET /api/customer/history ────────────────────────────────────────────
-    //
-    // Query params (sesuai state di History.jsx):
-    //   ?status=Selesai          → filter status, "Semua" = tidak difilter
-    //   ?bulan=Januari           → nama bulan Indonesia, "Semua" = tidak difilter
-    //   ?sort=Terbaru            → "Terbaru" (desc) | "Terlama" (asc)
-    //   ?nota=17081945           → pencarian partial nomor nota
-    //   ?page=1                  → halaman (default 1)
-    //   ?per_page=5              → item per halaman (default 5 = PER_PAGE)
-    //
-    // Response:
-    // {
-    //   "success": true,
-    //   "data": [ { id, nota, tanggal, layananUtama, berat, harga, status, detail } ],
-    //   "meta": { "total", "per_page", "current_page", "total_pages" }
-    // }
     public function index(Request $request)
     {
         $user    = $request->user();
@@ -61,7 +52,6 @@ class CustomerHistoryController extends Controller
         }
 
         // ── Filter Bulan ───────────────────────────────────────────────────────
-        // Frontend kirim nama bulan ("Januari"), bukan angka
         if ($request->filled('bulan') && $request->bulan !== 'Semua') {
             $nomorBulan = self::BULAN_MAP[strtolower($request->bulan)] ?? null;
             if ($nomorBulan) {
@@ -97,9 +87,6 @@ class CustomerHistoryController extends Controller
     }
 
     // ─── PRIVATE: Format baris tabel ──────────────────────────────────────────
-    // Sesuai kolom tabel History.jsx:
-    //   id | nota | tanggal | layananUtama | berat | harga | status | detail
-    // detail ikut disertakan di sini agar popup tidak perlu request tambahan
     private function formatRow(Order $order): array
     {
         return [
@@ -111,42 +98,42 @@ class CustomerHistoryController extends Controller
             'berat'        => $order->weight . ' Kg',
             'harga'        => 'Rp ' . number_format($order->total_price, 0, ',', '.'),
             'status'       => $order->status,
-            // detail dikirim langsung → popup bisa tampil tanpa request lagi
             'detail'       => $this->formatDetail($order),
         ];
     }
 
     // ─── PRIVATE: Format detail popup ─────────────────────────────────────────
-    // Sesuai yang dipakai DetailPopup + handlePrint di History.jsx:
-    //   nota, layanan, tanggalOrder, nama, totalBerat, totalHarga,
-    //   estimasi, activeStep, timeline[], items[]
-    //   + tipe, tgl (khusus untuk handlePrint)
     private function formatDetail(Order $order): array
     {
         $activeStep = self::STEP_MAP[$order->status] ?? 0;
 
-        // ── Timeline 4 slot ────────────────────────────────────────────────────
-        // Label harus sama persis dengan TIMELINE_STEPS di History.jsx
-        $defaultTimeline = [
-            ['label' => 'Order Diterima',  'tanggal' => '-'],
-            ['label' => 'Sedang Dipilah',  'tanggal' => '-'],
-            ['label' => 'Sedang Dicuci',   'tanggal' => '-'],
-            ['label' => 'Siap Diambil',    'tanggal' => '-'],
-        ];
+        // ── Bangun timeline 4 slot ─────────────────────────────────────────────
+        // Format: null = belum terjadi | "Label\nTanggal" = sudah terjadi
+        // Sama persis dengan struktur yang dipakai Dashboard.jsx
+        $timeline = [null, null, null, null];
 
-        $stepIndex = [
-            'order diterima'  => 0,
-            'sedang di pilah' => 1,
-            'sedang dipilah'  => 1, // toleransi ejaan alternatif
-            'sedang dicuci'   => 2,
-            'siap diambil'    => 3,
-        ];
+        if ($order->status !== 'Dibatalkan') {
+            // Kumpulkan tanggal yang sudah disimpan di DB (jika ada)
+            // DB menyimpan sebagai array [{label, tanggal}] atau [null, "...\n..."]
+            $savedDates = $this->extractSavedDates($order->timeline ?? []);
 
-        foreach ($order->timeline ?? [] as $step) {
-            $key = strtolower(trim($step['label'] ?? ''));
-            $idx = $stepIndex[$key] ?? null;
-            if ($idx !== null) {
-                $defaultTimeline[$idx]['tanggal'] = $step['tanggal'] ?? '-';
+            // Isi slot 0 sampai activeStep
+            for ($i = 0; $i <= $activeStep; $i++) {
+                $label = self::TIMELINE_LABELS[$i];
+
+                // Prioritas: tanggal dari DB → fallback order_date untuk step 0 → strip
+                if (!empty($savedDates[$i])) {
+                    $tanggal = $savedDates[$i];
+                } elseif ($i === 0) {
+                    // Step pertama selalu pakai tanggal order masuk
+                    $tanggal = Carbon::parse($order->order_date)
+                        ->locale('id')->isoFormat('D MMM YYYY, HH:mm');
+                } else {
+                    $tanggal = '-';
+                }
+
+                // Format: "Label\nTanggal" — identik dengan Dashboard.jsx
+                $timeline[$i] = $label . "\n" . $tanggal;
             }
         }
 
@@ -164,7 +151,6 @@ class CustomerHistoryController extends Controller
             ->locale('id')->isoFormat('D MMM YYYY');
 
         return [
-            // ── Untuk DetailPopup ──────────────────────────────────────────────
             'nota'         => $order->nota,
             'layanan'      => $order->service?->name ?? '-',
             'tanggalOrder' => $tglFormatted,
@@ -175,19 +161,67 @@ class CustomerHistoryController extends Controller
                                 ->locale('id')->isoFormat('D MMM YYYY'),
             'activeStep'   => $activeStep,
             'status'       => $order->status,
-            'timeline'     => $defaultTimeline,
-            'items'        => $items,
 
-            // ── Khusus handlePrint di History.jsx ─────────────────────────────
-            // detailItem.tipe  → tipe customer (reguler / member)
-            // detailItem.tgl   → tanggal untuk kolom kanan nota cetak
+            // timeline: array 4 slot [null|"Label\nTanggal", ...]
+            // Format identik dengan Dashboard.jsx agar Timeline component bisa reuse
+            'timeline'     => $timeline,
+
+            'items'        => $items,
             'tipe'         => ucfirst($order->customer_type ?? 'Reguler'),
             'tgl'          => $tglFormatted,
         ];
     }
 
+    // ─── PRIVATE: Ekstrak tanggal tersimpan dari kolom timeline DB ────────────
+    // Mendukung 2 format penyimpanan:
+    //   Format A (dari Dashboard/OrderList admin): array of null|"Label\nTanggal"
+    //   Format B (lama): array of {label, tanggal}
+    private function extractSavedDates(array $rawTimeline): array
+    {
+        $dates = [];
+
+        $stepIndex = [
+            'order diterima'  => 0,
+            'order di terima' => 0,
+            'sedang di pilah' => 1,
+            'sedang dipilah'  => 1,
+            'sedang dicuci'   => 2,
+            'sedang di cuci'  => 2,
+            'siap diambil'    => 3,
+            'siap di ambil'   => 3,
+        ];
+
+        foreach ($rawTimeline as $idx => $slot) {
+            if ($slot === null) continue;
+
+            // Format A: "Label\nTanggal"
+            if (is_string($slot)) {
+                $parts = explode("\n", $slot, 2);
+                $label = strtolower(trim($parts[0] ?? ''));
+                $tgl   = trim($parts[1] ?? '');
+                $i     = $stepIndex[$label] ?? (is_int($idx) ? $idx : null);
+                if ($i !== null && $tgl !== '' && $tgl !== '-') {
+                    $dates[$i] = $tgl;
+                }
+                continue;
+            }
+
+            // Format B: {label: "...", tanggal: "..."}
+            if (is_array($slot) && isset($slot['tanggal']) && $slot['tanggal'] !== '-') {
+                if (is_int($idx)) {
+                    $dates[$idx] = $slot['tanggal'];
+                } elseif (isset($slot['label'])) {
+                    $key = strtolower(trim($slot['label']));
+                    $i   = $stepIndex[$key] ?? null;
+                    if ($i !== null) $dates[$i] = $slot['tanggal'];
+                }
+            }
+        }
+
+        return $dates;
+    }
+
     // ─── PRIVATE: Ringkasan layanan untuk kolom tabel ─────────────────────────
-    // Contoh: "Kiloan 7 Kg + Bedcover 1x" atau "Kiloan 7 Kg + 2 lainnya"
     private function buildLayananUtama(Order $order): string
     {
         if ($order->items->isEmpty()) {

@@ -70,7 +70,7 @@ class CustomerDashboardController extends Controller
         // Mapping status → activeStep (urutan harus sama persis dengan STEPS frontend)
         $stepMap = [
             'Order Diterima'  => 0,
-            'Sedang Di Pilah' => 1,
+            'Sedang Dipilah' => 1,
             'Sedang Dicuci'   => 2,
             'Siap Diambil'    => 3,
         ];
@@ -80,14 +80,14 @@ class CustomerDashboardController extends Controller
         // Label harus cocok dengan key STEPS[i].key di Track.jsx
         $defaultTimeline = [
             ['label' => 'Order Diterima',  'tanggal' => '–'],
-            ['label' => 'Sedang Di Pilah', 'tanggal' => '–'],
+            ['label' => 'Sedang Dipilah', 'tanggal' => '–'],
             ['label' => 'Sedang Dicuci',   'tanggal' => '–'],
             ['label' => 'Siap Diambil',    'tanggal' => '–'],
         ];
 
         $stepIndex = [
             'order diterima'  => 0,
-            'sedang di pilah' => 1,
+            'sedang dipilah' => 1,
             'sedang dicuci'   => 2,
             'siap diambil'    => 3,
         ];
