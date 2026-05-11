@@ -27,8 +27,8 @@ class OrderController extends Controller
         if ($request->filled('status') && $request->status !== 'SEMUA') {
             $statusMap = [
                 'Order Diterima' => ['Order Diterima'],
-                'Sedang DiPilah' => ['Sedang Di Pilah'],
-                'Sedang DiCuci'  => ['Sedang Dicuci'],
+                'Sedang Dipilah' => ['Sedang Dipilah'],
+                'Sedang Dicuci'  => ['Sedang Dicuci'],
                 'SIAP AMBIL'     => ['Siap Diambil'],
                 'SELESAI'        => ['Selesai'],
                 'DIBATALKAN'     => ['Dibatalkan'],
@@ -57,7 +57,7 @@ class OrderController extends Controller
         } elseif (!$month) {
             // Jika tidak ada parameter month sama sekali → default bulan ini
             $query->whereYear('order_date', Carbon::now()->year)
-                  ->whereMonth('order_date', Carbon::now()->month);
+                  ->whereMonth('order_datet', Carbon::now()->month);
         }
         // Jika $month === 'Semua Bulan' → tidak ada filter bulan (tampil semua)
 
@@ -87,7 +87,7 @@ class OrderController extends Controller
         
         $statusSequence = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai'
@@ -108,9 +108,9 @@ class OrderController extends Controller
 
             if ($nextStatus === 'Sedang Di Pilah') {
                 $timeline[0] = "Order di terima\n" . $order->created_at->format('d M H.i');
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
+                $timeline[1] = "Sedang Di pilah\n" . $nowStr;
             } elseif ($nextStatus === 'Sedang Dicuci') {
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
+                $timeline[1] = "Sedang Di pilah\n" . $nowStr;
                 $timeline[2] = "Sedang Di cuci\n" . $nowStr;
             } elseif ($nextStatus === 'Siap Diambil') {
                 $timeline[2] = "Sedang Di cuci\n" . $nowStr;
@@ -142,7 +142,7 @@ class OrderController extends Controller
 
         $statusSequence = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai'
