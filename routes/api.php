@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // CRUD Order
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders/{id}/next-status', [OrderController::class, 'nextStatus']);
+    Route::post('/orders/{id}/prev-status', [OrderController::class, 'prevStatus']);
     Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
 
     // Dashboard Admin

@@ -26,9 +26,9 @@ class OrderController extends Controller
         // 2. Filter Tab Status
         if ($request->filled('status') && $request->status !== 'SEMUA') {
             $statusMap = [
-                'Order Diterima' => ['Order Diterima'],
-                'Sedang DiPilah' => ['Sedang Dipilah'],
-                'Sedang DiCuci'  => ['Sedang Dicuci'],
+                'Order Di Terima' => ['Order Diterima'],
+                'Sedang Di Pilah' => ['Sedang Dipilah'],
+                'Sedang Di Cuci'  => ['Sedang Dicuci'],
                 'SIAP AMBIL'     => ['Siap Diambil'],
                 'SELESAI'        => ['Selesai'],
                 'DIBATALKAN'     => ['Dibatalkan'],
@@ -44,21 +44,28 @@ class OrderController extends Controller
             $query->where('customer_type', $type);
         }
 
-        // 4. Fitur Sortir Berdasarkan Bulan (BARU)
-        if ($request->filled('month') && $request->month !== 'Semua Bulan') {
+        // 4. Filter Bulan — Default: bulan berjalan jika parameter kosong
+        $month = $request->filled('month') ? $request->month : null;
+
+        if ($month && $month !== 'Semua Bulan') {
             // Parameter 'month' dikirimkan dalam format 'YYYY-MM' (contoh: 2026-05)
-            $dateParts = explode('-', $request->month);
+            $dateParts = explode('-', $month);
             if (count($dateParts) === 2) {
-                $query->whereYear('created_at', $dateParts[0])
-                      ->whereMonth('created_at', $dateParts[1]);
+                $query->whereYear('order_date', $dateParts[0])
+                      ->whereMonth('order_date', $dateParts[1]);
             }
+        } elseif (!$month) {
+            // Jika tidak ada parameter month sama sekali → default bulan ini
+            $query->whereYear('order_date', Carbon::now()->year)
+                  ->whereMonth('order_date', Carbon::now()->month);
         }
+        // Jika $month === 'Semua Bulan' → tidak ada filter bulan (tampil semua)
 
         // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
-            $query->orderBy('created_at', 'asc');
+            $query->orderBy('order_date', 'asc');
         } else {
-            $query->orderBy('created_at', 'desc'); // Default terbaru
+            $query->orderBy('order_date', 'desc'); // Default terbaru
         }
 
         $orders = $query->get();
@@ -104,9 +111,9 @@ class OrderController extends Controller
                 $timeline[1] = "Sedang Dipilah\n" . $nowStr;
             } elseif ($nextStatus === 'Sedang Dicuci') {
                 $timeline[1] = "Sedang Dipilah\n" . $nowStr;
-                $timeline[2] = "Sedang Dicuci\n" . $nowStr;
+                $timeline[2] = "Sedang Di cuci\n" . $nowStr;
             } elseif ($nextStatus === 'Siap Diambil') {
-                $timeline[2] = "Sedang Dicuci\n" . $nowStr;
+                $timeline[2] = "Sedang Di cuci\n" . $nowStr;
                 $timeline[3] = "Siap Di ambil\n" . $nowStr;
             } elseif ($nextStatus === 'Selesai') {
                 $timeline[3] = "Selesai\n" . $nowStr;
@@ -126,6 +133,78 @@ class OrderController extends Controller
             'success' => false,
             'message' => 'Status tidak dapat dilanjutkan lagi.'
         ], 400);
+    }
+
+    // ─── PREV STATUS / UNDO (Mundur ke fase sebelumnya) ────────────────────
+    public function prevStatus($id)
+    {
+        $order = Order::with(['items', 'service'])->findOrFail($id);
+
+        $statusSequence = [
+            'Order Diterima',
+            'Sedang Dipilah',
+            'Sedang Dicuci',
+            'Siap Diambil',
+            'Selesai'
+        ];
+
+        // Tidak bisa undo jika sudah Dibatalkan
+        if ($order->status === 'Dibatalkan') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesanan yang dibatalkan tidak dapat di-undo.'
+            ], 400);
+        }
+
+        $currentIndex = array_search($order->status, $statusSequence);
+
+        // Tidak bisa undo jika sudah di status pertama
+        if ($currentIndex === false || $currentIndex === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Status sudah berada di tahap pertama, tidak bisa di-undo.'
+            ], 400);
+        }
+
+        $prevStatus = $statusSequence[$currentIndex - 1];
+        $order->status = $prevStatus;
+
+        // Reset timeline: hapus entry pada index currentIndex dan ke atas
+        $timeline = $order->timeline;
+        if (!is_array($timeline) || empty($timeline)) {
+            $timeline = [null, null, null, null];
+        }
+
+        // Mapping: index status → index timeline yang perlu dihapus saat undo
+        // 'Sedang Di Pilah' (index 1) → timeline[1] di-reset (kembali ke Order Diterima)
+        // 'Sedang Dicuci'   (index 2) → timeline[2] di-reset
+        // 'Siap Diambil'    (index 3) → timeline[3] di-reset
+        // 'Selesai'         (index 4) → timeline[3] tetap (Selesai pakai slot [3] juga)
+        if ($currentIndex === 1) {
+            // Undo dari Sedang Di Pilah → Order Diterima: reset slot 0 & 1
+            $timeline[0] = null;
+            $timeline[1] = null;
+        } elseif ($currentIndex === 2) {
+            // Undo dari Sedang Dicuci → Sedang Di Pilah: reset slot 1 & 2
+            $timeline[1] = "Sedang Di pilah\n" . $order->updated_at->format('d M H.i');
+            $timeline[2] = null;
+        } elseif ($currentIndex === 3) {
+            // Undo dari Siap Diambil → Sedang Dicuci: reset slot 2 & 3
+            $timeline[2] = "Sedang Di cuci\n" . $order->updated_at->format('d M H.i');
+            $timeline[3] = null;
+        } elseif ($currentIndex === 4) {
+            // Undo dari Selesai → Siap Diambil: reset slot 3
+            $timeline[3] = "Siap Di ambil\n" . $order->updated_at->format('d M H.i');
+        }
+
+        $order->timeline = $timeline;
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status berhasil di-undo ke ' . $prevStatus,
+            'data' => $this->formatOrder($order)
+        ]);
     }
 
     // ─── CANCEL ATAU SOFT DELETE ORDER ─────────────────────────────────────────
