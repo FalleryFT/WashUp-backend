@@ -51,21 +51,21 @@ class OrderController extends Controller
             // Parameter 'month' dikirimkan dalam format 'YYYY-MM' (contoh: 2026-05)
             $dateParts = explode('-', $month);
             if (count($dateParts) === 2) {
-                $query->whereYear('created_at', $dateParts[0])
-                      ->whereMonth('created_at', $dateParts[1]);
+                $query->whereYear('order_date', $dateParts[0])
+                      ->whereMonth('order_date', $dateParts[1]);
             }
         } elseif (!$month) {
             // Jika tidak ada parameter month sama sekali → default bulan ini
-            $query->whereYear('created_at', Carbon::now()->year)
-                  ->whereMonth('created_at', Carbon::now()->month);
+            $query->whereYear('order_date', Carbon::now()->year)
+                  ->whereMonth('order_date', Carbon::now()->month);
         }
         // Jika $month === 'Semua Bulan' → tidak ada filter bulan (tampil semua)
 
         // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
-            $query->orderBy('created_at', 'asc');
+            $query->orderBy('order_date', 'asc');
         } else {
-            $query->orderBy('created_at', 'desc'); // Default terbaru
+            $query->orderBy('order_date', 'desc'); // Default terbaru
         }
 
         $orders = $query->get();

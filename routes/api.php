@@ -81,4 +81,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customer/profile', [CustomerProfileController::class, 'show']);
     Route::put('/customer/profile', [CustomerProfileController::class, 'update']);
 });
-
