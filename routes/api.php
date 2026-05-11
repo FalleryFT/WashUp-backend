@@ -3,21 +3,35 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\CustomerController; // Import Controller Customer
+use App\Http\Controllers\Admin\OrderController;    // Import Controller Order
+use App\Http\Controllers\Admin\DashboardController; // Import Controller Dashboard
+use App\Http\Controllers\Admin\FinancialReportController; // Import Controller FinancialReport
+use App\Http\Controllers\Admin\PriceSettingController; // Import Controller PriceSetting
+use App\Http\Controllers\Admin\NewTransactionController; // Import Controller NewTransaction  
+use App\Http\Controllers\LandingPageController; // Import Controller LandingPage  
+use App\Http\Controllers\Customer\CustomerDashboardController;
+use App\Http\Controllers\Customer\CustomerLacakController; // Import Controller CustomerLacak
+use App\Http\Controllers\Customer\CustomerHistoryController; // Import Controller CustomerHistory
+use App\Http\Controllers\Customer\CustomerProfileController; // Import Controller CustomerProfile
 
+// ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::prefix('landing')->group(function () {
+    Route::get('services', [LandingPageController::class, 'services']);
+    Route::get('track',    [LandingPageController::class, 'track']);
+});
 
+// ─── PROTECTED ROUTES (Harus Login) ──────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-<<<<<<< Updated upstream
-});
-=======
 
     // CRUD Customer dengan Soft Delete
     Route::get('/customers', [CustomerController::class, 'index']);
@@ -67,4 +81,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customer/profile', [CustomerProfileController::class, 'show']);
     Route::put('/customer/profile', [CustomerProfileController::class, 'update']);
 });
->>>>>>> Stashed changes
+

@@ -26,9 +26,9 @@ class OrderController extends Controller
         // 2. Filter Tab Status
         if ($request->filled('status') && $request->status !== 'SEMUA') {
             $statusMap = [
-                'Order Diterima' => ['Order Diterima'],
-                'Sedang DiPilah' => ['Sedang Di Pilah'],
-                'Sedang DiCuci'  => ['Sedang Dicuci'],
+                'Order Di Terima' => ['Order Diterima'],
+                'Sedang Di Pilah' => ['Sedang Dipilah'],
+                'Sedang Di Cuci'  => ['Sedang Dicuci'],
                 'SIAP AMBIL'     => ['Siap Diambil'],
                 'SELESAI'        => ['Selesai'],
                 'DIBATALKAN'     => ['Dibatalkan'],
@@ -51,21 +51,21 @@ class OrderController extends Controller
             // Parameter 'month' dikirimkan dalam format 'YYYY-MM' (contoh: 2026-05)
             $dateParts = explode('-', $month);
             if (count($dateParts) === 2) {
-                $query->whereYear('order_date', $dateParts[0])
-                      ->whereMonth('order_date', $dateParts[1]);
+                $query->whereYear('created_at', $dateParts[0])
+                      ->whereMonth('created_at', $dateParts[1]);
             }
         } elseif (!$month) {
             // Jika tidak ada parameter month sama sekali → default bulan ini
-            $query->whereYear('order_date', Carbon::now()->year)
-                  ->whereMonth('order_date', Carbon::now()->month);
+            $query->whereYear('created_at', Carbon::now()->year)
+                  ->whereMonth('created_at', Carbon::now()->month);
         }
         // Jika $month === 'Semua Bulan' → tidak ada filter bulan (tampil semua)
 
         // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
-            $query->orderBy('order_date', 'asc');
+            $query->orderBy('created_at', 'asc');
         } else {
-            $query->orderBy('order_date', 'desc'); // Default terbaru
+            $query->orderBy('created_at', 'desc'); // Default terbaru
         }
 
         $orders = $query->get();
@@ -87,7 +87,7 @@ class OrderController extends Controller
         
         $statusSequence = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai'
@@ -106,11 +106,11 @@ class OrderController extends Controller
 
             $nowStr = Carbon::now()->format('d M H.i');
 
-            if ($nextStatus === 'Sedang Di Pilah') {
+            if ($nextStatus === 'Sedang Dipilah') {
                 $timeline[0] = "Order di terima\n" . $order->created_at->format('d M H.i');
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
+                $timeline[1] = "Sedang Dipilah\n" . $nowStr;
             } elseif ($nextStatus === 'Sedang Dicuci') {
-                $timeline[1] = "Sedang Di Pilah\n" . $nowStr;
+                $timeline[1] = "Sedang Dipilah\n" . $nowStr;
                 $timeline[2] = "Sedang Di cuci\n" . $nowStr;
             } elseif ($nextStatus === 'Siap Diambil') {
                 $timeline[2] = "Sedang Di cuci\n" . $nowStr;
@@ -142,7 +142,7 @@ class OrderController extends Controller
 
         $statusSequence = [
             'Order Diterima',
-            'Sedang Di Pilah',
+            'Sedang Dipilah',
             'Sedang Dicuci',
             'Siap Diambil',
             'Selesai'
@@ -186,7 +186,7 @@ class OrderController extends Controller
             $timeline[1] = null;
         } elseif ($currentIndex === 2) {
             // Undo dari Sedang Dicuci → Sedang Di Pilah: reset slot 1 & 2
-            $timeline[1] = "Sedang Di Pilah\n" . $order->updated_at->format('d M H.i');
+            $timeline[1] = "Sedang Di pilah\n" . $order->updated_at->format('d M H.i');
             $timeline[2] = null;
         } elseif ($currentIndex === 3) {
             // Undo dari Siap Diambil → Sedang Dicuci: reset slot 2 & 3
