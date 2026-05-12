@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
+        use SoftDeletes;
+        
     protected $fillable = [
         'nota', 'user_id', 'customer_name', 'customer_phone',
         'customer_type', 'service_id', 'weight',
@@ -40,5 +42,5 @@ class Order extends Model
         return $this->hasMany(Notification::class);
     }
 
-    use SoftDeletes;
+
 }
