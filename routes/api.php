@@ -14,6 +14,7 @@ use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerLacakController; // Import Controller CustomerLacak
 use App\Http\Controllers\Customer\CustomerHistoryController; // Import Controller CustomerHistory
 use App\Http\Controllers\Customer\CustomerProfileController; // Import Controller CustomerProfile
+use App\Http\Controllers\Customer\CustomerNotificationController;
 
 // ─── PUBLIC ROUTES ───────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
@@ -80,4 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Profil Customer
     Route::get('/customer/profile', [CustomerProfileController::class, 'show']);
     Route::put('/customer/profile', [CustomerProfileController::class, 'update']);
+
+    // Notifikasi Customer
+    Route::get('/customer/notifications',            [CustomerNotificationController::class, 'index']);
+    Route::get('/customer/notifications/unread-count',[CustomerNotificationController::class, 'unreadCount']);
+    Route::patch('/customer/notifications/read-all', [CustomerNotificationController::class, 'markAllRead']);
+    Route::patch('/customer/notifications/{id}/read',[CustomerNotificationController::class, 'markRead']);
+
 });

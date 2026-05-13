@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -48,24 +49,21 @@ class OrderController extends Controller
         $month = $request->filled('month') ? $request->month : null;
 
         if ($month && $month !== 'Semua Bulan') {
-            // Parameter 'month' dikirimkan dalam format 'YYYY-MM' (contoh: 2026-05)
             $dateParts = explode('-', $month);
             if (count($dateParts) === 2) {
                 $query->whereYear('order_date', $dateParts[0])
                       ->whereMonth('order_date', $dateParts[1]);
             }
         } elseif (!$month) {
-            // Jika tidak ada parameter month sama sekali → default bulan ini
             $query->whereYear('order_date', Carbon::now()->year)
                   ->whereMonth('order_date', Carbon::now()->month);
         }
-        // Jika $month === 'Semua Bulan' → tidak ada filter bulan (tampil semua)
 
         // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
             $query->orderBy('order_date', 'asc');
         } else {
-            $query->orderBy('order_date', 'desc'); // Default terbaru
+            $query->orderBy('order_date', 'desc');
         }
 
         $orders = $query->get();
@@ -84,7 +82,7 @@ class OrderController extends Controller
     public function nextStatus($id)
     {
         $order = Order::with(['items', 'service'])->findOrFail($id);
-        
+
         $statusSequence = [
             'Order Diterima',
             'Sedang Dipilah',
@@ -92,9 +90,9 @@ class OrderController extends Controller
             'Siap Diambil',
             'Selesai'
         ];
-        
+
         $currentIndex = array_search($order->status, $statusSequence);
-        
+
         if ($currentIndex !== false && $currentIndex < count($statusSequence) - 1) {
             $nextStatus = $statusSequence[$currentIndex + 1];
             $order->status = $nextStatus;
@@ -122,6 +120,9 @@ class OrderController extends Controller
             $order->timeline = $timeline;
             $order->save();
 
+            // ── Kirim notifikasi ke customer (hanya jika order milik member) ──
+            $this->sendCustomerNotification($order, $nextStatus);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Status berhasil diperbarui ke ' . $nextStatus,
@@ -148,7 +149,6 @@ class OrderController extends Controller
             'Selesai'
         ];
 
-        // Tidak bisa undo jika sudah Dibatalkan
         if ($order->status === 'Dibatalkan') {
             return response()->json([
                 'success' => false,
@@ -158,7 +158,6 @@ class OrderController extends Controller
 
         $currentIndex = array_search($order->status, $statusSequence);
 
-        // Tidak bisa undo jika sudah di status pertama
         if ($currentIndex === false || $currentIndex === 0) {
             return response()->json([
                 'success' => false,
@@ -169,31 +168,21 @@ class OrderController extends Controller
         $prevStatus = $statusSequence[$currentIndex - 1];
         $order->status = $prevStatus;
 
-        // Reset timeline: hapus entry pada index currentIndex dan ke atas
         $timeline = $order->timeline;
         if (!is_array($timeline) || empty($timeline)) {
             $timeline = [null, null, null, null];
         }
 
-        // Mapping: index status → index timeline yang perlu dihapus saat undo
-        // 'Sedang Di Pilah' (index 1) → timeline[1] di-reset (kembali ke Order Diterima)
-        // 'Sedang Dicuci'   (index 2) → timeline[2] di-reset
-        // 'Siap Diambil'    (index 3) → timeline[3] di-reset
-        // 'Selesai'         (index 4) → timeline[3] tetap (Selesai pakai slot [3] juga)
         if ($currentIndex === 1) {
-            // Undo dari Sedang Di Pilah → Order Diterima: reset slot 0 & 1
             $timeline[0] = null;
             $timeline[1] = null;
         } elseif ($currentIndex === 2) {
-            // Undo dari Sedang Dicuci → Sedang Di Pilah: reset slot 1 & 2
             $timeline[1] = "Sedang Di pilah\n" . $order->updated_at->format('d M H.i');
             $timeline[2] = null;
         } elseif ($currentIndex === 3) {
-            // Undo dari Siap Diambil → Sedang Dicuci: reset slot 2 & 3
             $timeline[2] = "Sedang Di cuci\n" . $order->updated_at->format('d M H.i');
             $timeline[3] = null;
         } elseif ($currentIndex === 4) {
-            // Undo dari Selesai → Siap Diambil: reset slot 3
             $timeline[3] = "Siap Di ambil\n" . $order->updated_at->format('d M H.i');
         }
 
@@ -211,28 +200,28 @@ class OrderController extends Controller
     public function destroy($id)
     {
         $order = Order::with(['items', 'service'])->findOrFail($id);
-        
-        // JIKA PESANAN SUDAH SELESAI / DIBATALKAN -> LAKUKAN SOFT DELETE
+
         if (in_array($order->status, ['Selesai', 'Dibatalkan'])) {
-            $order->delete(); // Ini akan memicu soft delete jika model menggunakan trait SoftDeletes
+            $order->delete();
             return response()->json([
                 'success' => true,
                 'message' => 'Pesanan berhasil dihapus secara permanen dari daftar aktif.'
             ]);
         }
 
-        // JIKA PESANAN BELUM SELESAI/DIBATALKAN -> UBAH STATUS MENJADI DIBATALKAN
         $order->status = 'Dibatalkan';
 
         $timeline = $order->timeline;
         if (!is_array($timeline) || empty($timeline)) {
             $timeline = [null, null, null, null];
         }
-        
+
         $timeline[3] = "Dibatalkan\n" . Carbon::now()->format('d M H.i');
-        
         $order->timeline = $timeline;
         $order->save();
+
+        // ── Kirim notifikasi pembatalan ke customer ──
+        $this->sendCustomerNotification($order, 'Dibatalkan');
 
         return response()->json([
             'success' => true,
@@ -241,29 +230,80 @@ class OrderController extends Controller
         ]);
     }
 
-    // Data Formatter untuk Response API
-    private function formatOrder($order)
+    // ─── PRIVATE: Kirim notifikasi ke customer ──────────────────────────────
+    /**
+     * Hanya customer bertipe 'member' yang punya user_id,
+     * sehingga notifikasi hanya dikirim jika order->user_id tidak null.
+     */
+    private function sendCustomerNotification(Order $order, string $status): void
+    {
+        if (!$order->user_id) {
+            return; // Non-member tidak punya akun, skip
+        }
+
+        $map = [
+            'Order Diterima'  => [
+                'title'   => 'Pesanan Diterima',
+                'message' => "Pesanan Nota #{$order->nota} Anda telah diterima dan sedang diproses.",
+            ],
+            'Sedang Dipilah'  => [
+                'title'   => 'Pesanan Sedang Dipilah',
+                'message' => "Pesanan Nota #{$order->nota} Anda sedang dalam proses pemilahan.",
+            ],
+            'Sedang Dicuci'   => [
+                'title'   => 'Cucian Sedang Dicuci',
+                'message' => "Pesanan Nota #{$order->nota} Anda sedang dalam proses pencucian.",
+            ],
+            'Siap Diambil'    => [
+                'title'   => 'Cucian Siap Diambil! 🎉',
+                'message' => "Pesanan Nota #{$order->nota} Anda sudah selesai dan siap diambil.",
+            ],
+            'Selesai'         => [
+                'title'   => 'Pesanan Selesai',
+                'message' => "Pesanan Nota #{$order->nota} telah selesai. Terima kasih telah menggunakan layanan kami!",
+            ],
+            'Dibatalkan'      => [
+                'title'   => 'Pesanan Dibatalkan',
+                'message' => "Pesanan Nota #{$order->nota} Anda telah dibatalkan. Hubungi kami jika ada pertanyaan.",
+            ],
+        ];
+
+        if (!isset($map[$status])) {
+            return;
+        }
+
+        Notification::create([
+            'user_id'  => $order->user_id,
+            'order_id' => $order->id,
+            'title'    => $map[$status]['title'],
+            'message'  => $map[$status]['message'],
+            'is_read'  => false,
+        ]);
+    }
+
+    // ─── Data Formatter untuk Response API ──────────────────────────────────
+    private function formatOrder($order): array
     {
         return [
-            'id' => $order->id,
-            'nota' => $order->nota,
-            'nama' => $order->customer_name,
-            'berat' => $order->weight . ' Kg',
-            'tgl' => $order->order_date ? $order->order_date->format('d F Y') : '-',
-            'estimasi' => $order->estimated_date ? $order->estimated_date->format('d F Y') : '-',
-            'status' => $order->status,
-            'tipe' => ucfirst($order->customer_type),
+            'id'         => $order->id,
+            'nota'       => $order->nota,
+            'nama'       => $order->customer_name,
+            'berat'      => $order->weight . ' Kg',
+            'tgl'        => $order->order_date ? $order->order_date->format('d F Y') : '-',
+            'estimasi'   => $order->estimated_date ? $order->estimated_date->format('d F Y') : '-',
+            'status'     => $order->status,
+            'tipe'       => ucfirst($order->customer_type),
             'totalHarga' => 'Rp ' . number_format($order->total_price, 0, ',', '.'),
-            'layanan' => $order->service ? $order->service->name : '-',
-            'items' => $order->items->map(function ($item) {
+            'layanan'    => $order->service ? $order->service->name : '-',
+            'items'      => $order->items->map(function ($item) {
                 return [
-                    'item' => $item->item_name,
+                    'item'   => $item->item_name,
                     'jumlah' => floatval($item->quantity) . ' ' . $item->unit,
-                    'harga' => 'Rp ' . number_format($item->unit_price, 0, ',', '.'),
-                    'sub' => 'Rp ' . number_format($item->subtotal, 0, ',', '.'),
+                    'harga'  => 'Rp ' . number_format($item->unit_price, 0, ',', '.'),
+                    'sub'    => 'Rp ' . number_format($item->subtotal, 0, ',', '.'),
                 ];
             }),
-            'timeline' => $order->timeline ?? [null, null, null, null],
+            'timeline'   => $order->timeline ?? [null, null, null, null],
         ];
     }
 }
