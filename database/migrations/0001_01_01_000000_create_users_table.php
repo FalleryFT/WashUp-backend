@@ -10,9 +10,10 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();             // username login
-            $table->string('phone')->unique()->nullable(); // no_hp
-            $table->text('address')->nullable();           // alamat
+            $table->string('name')->unique();              // username login
+            $table->string('email')->unique()->nullable();  // email (untuk login & reset password)
+            $table->string('phone')->unique()->nullable();  // no_hp
+            $table->text('address')->nullable();            // alamat
             $table->string('password');
             $table->enum('role', ['admin', 'customer'])->default('customer');
             $table->rememberToken();
@@ -26,4 +27,3 @@ return new class extends Migration
         Schema::dropIfExists('users');
     }
 };
- 
