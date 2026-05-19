@@ -189,6 +189,9 @@ class OrderController extends Controller
         $order->timeline = $timeline;
         $order->save();
 
+        // ── Kirim notifikasi permintaan maaf ke customer ──
+        $this->sendCustomerNotification($order, 'UNDO:' . $prevStatus);
+
         return response()->json([
             'success' => true,
             'message' => 'Status berhasil di-undo ke ' . $prevStatus,
@@ -262,9 +265,27 @@ class OrderController extends Controller
                 'title'   => 'Pesanan Selesai',
                 'message' => "Pesanan Nota #{$order->nota} telah selesai. Terima kasih telah menggunakan layanan kami!",
             ],
-            'Dibatalkan'      => [
+            'Dibatalkan'           => [
                 'title'   => 'Pesanan Dibatalkan',
                 'message' => "Pesanan Nota #{$order->nota} Anda telah dibatalkan. Hubungi kami jika ada pertanyaan.",
+            ],
+
+            // ── Notifikasi UNDO per status sebelumnya ──────────────────────
+            'UNDO:Order Diterima'  => [
+                'title'   => 'Maaf, Ada Kekeliruan dari Kami 🙏',
+                'message' => "Mohon maaf atas perubahan ini. Status pesanan Nota #{$order->nota} kami perbaiki kembali ke \"Order Diterima\". Pesanan Anda tetap aman dan dalam penanganan kami. 🙏",
+            ],
+            'UNDO:Sedang Dipilah'  => [
+                'title'   => 'Maaf, Ada Kekeliruan dari Kami 🙏',
+                'message' => "Mohon maaf atas perubahan ini. Status pesanan Nota #{$order->nota} kami perbaiki kembali ke \"Sedang Dipilah\". Pesanan Anda tetap aman dan dalam penanganan kami. 🙏",
+            ],
+            'UNDO:Sedang Dicuci'   => [
+                'title'   => 'Maaf, Ada Kekeliruan dari Kami 🙏',
+                'message' => "Mohon maaf atas perubahan ini. Status pesanan Nota #{$order->nota} kami perbaiki kembali ke \"Sedang Dicuci\". Pesanan Anda tetap aman dan dalam penanganan kami. 🙏",
+            ],
+            'UNDO:Siap Diambil'    => [
+                'title'   => 'Maaf, Ada Kekeliruan dari Kami 🙏',
+                'message' => "Mohon maaf atas perubahan ini. Status pesanan Nota #{$order->nota} kami perbaiki kembali ke \"Siap Diambil\". Pesanan Anda tetap aman dan dalam penanganan kami. 🙏",
             ],
         ];
 

@@ -74,6 +74,23 @@ class CustomerNotificationController extends Controller
         ]);
     }
 
+    /**
+     * DELETE /customer/notifications/read
+     * Hapus semua notifikasi yang sudah dibaca milik user.
+     * Notifikasi yang belum dibaca (is_read = false) tetap tersimpan.
+     */
+    public function deleteRead(Request $request)
+    {
+        $deleted = Notification::where('user_id', $request->user()->id)
+            ->where('is_read', true)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$deleted} notifikasi yang sudah dibaca berhasil dihapus.",
+        ]);
+    }
+
     // ─── Private Helper ───────────────────────────────────────────────────────
 
     private function format(Notification $n): array
