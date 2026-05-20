@@ -79,27 +79,26 @@ class AuthController extends Controller
 
     // ── Send OTP via Email ────────────────────────────────────────────────────
     public function sendOtp(Request $request)
-    {
-        $request->validate(['email' => 'required|email']);
+{
+    $request->validate(['email' => 'required|email']);
 
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
-            return response()->json(['message' => 'Email tidak ditemukan'], 404);
-        }
-
-        $otp = rand(100000, 999999);
-        Cache::put('otp_' . $request->email, $otp, now()->addMinutes(5));
-
-        // Di production: kirim OTP via email
-        // Mail::to($request->email)->send(new OtpMail($otp));
-
-        // Untuk development, return OTP di response
-        return response()->json([
-            'message' => 'OTP telah dikirim ke email Anda',
-            'otp'     => $otp, // Hapus baris ini di production!
-        ]);
+    if (!$user) {
+        return response()->json(['message' => 'Email tidak ditemukan'], 404);
     }
+
+    $otp = rand(100000, 999999);
+    Cache::put('otp_' . $request->email, $otp, now()->addMinutes(5));
+
+    // ✅ Kirim OTP via email (aktif di semua environment)
+    Mail::to($request->email)->send(new \App\Mail\OtpMail($otp));
+
+    return response()->json([
+        'message' => 'OTP telah dikirim ke email Anda',
+        // 'otp' => $otp, // ← Hapus / comment ini di production!
+    ]);
+}
 
     // ── Verify OTP ────────────────────────────────────────────────────────────
     public function verifyOtp(Request $request)
