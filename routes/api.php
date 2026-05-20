@@ -24,7 +24,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::prefix('landing')->group(function () {
     Route::get('services', [LandingPageController::class, 'services']);
-    Route::get('track',    [LandingPageController::class, 'track']);
+    Route::get('track', [LandingPageController::class, 'track']);
 });
 
 // ─── PROTECTED ROUTES (Harus Login) ──────────────────────────────────────────
@@ -70,7 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard Customer
     Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index']);
-    
+
     // Lacak Pesanan Customer
     Route::get('/customer/orders', [CustomerLacakController::class, 'index']);
     Route::get('/customer/orders/{nota}', [CustomerLacakController::class, 'show']);
@@ -83,9 +83,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/customer/profile', [CustomerProfileController::class, 'update']);
 
     // Notifikasi Customer
-    Route::get('/customer/notifications',            [CustomerNotificationController::class, 'index']);
-    Route::get('/customer/notifications/unread-count',[CustomerNotificationController::class, 'unreadCount']);
+    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index']);
+    Route::get('/customer/notifications/unread-count', [CustomerNotificationController::class, 'unreadCount']);
     Route::patch('/customer/notifications/read-all', [CustomerNotificationController::class, 'markAllRead']);
-    Route::patch('/customer/notifications/{id}/read',[CustomerNotificationController::class, 'markRead']);
+    Route::delete('/customer/notifications/read', [CustomerNotificationController::class, 'deleteRead']);
+    Route::patch('/customer/notifications/{id}/read', [CustomerNotificationController::class, 'markRead']);
 
 });
