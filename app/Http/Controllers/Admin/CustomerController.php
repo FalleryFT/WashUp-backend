@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -22,6 +21,7 @@ class CustomerController extends Controller
                 return $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%") // ✅ tambah pencarian by email
                       ->orWhere('id', 'like', "%{$search}%");
                 });
             })
@@ -42,12 +42,12 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
+            'email'    => 'nullable|email|max:255|unique:users,email', // ✅ DITAMBAHKAN
             'phone'    => 'required|string|max:20|unique:users,phone',
             'address'  => 'nullable|string',
-            'password' => 'required|string|min:6', // Validasi password ditambahkan
+            'password' => 'required|string|min:6',
         ]);
 
-        // Password di-hash sebelum masuk database
         $validated['password'] = Hash::make($request->password);
         $validated['role']     = 'customer';
 
@@ -69,6 +69,7 @@ class CustomerController extends Controller
 
         $validated = $request->validate([
             'name'    => 'required|string|max:255',
+            'email'   => 'nullable|email|max:255|unique:users,email,' . $id, // ✅ DITAMBAHKAN (ignore email milik sendiri)
             'phone'   => 'required|string|max:20|unique:users,phone,' . $id,
             'address' => 'nullable|string',
         ]);
@@ -78,7 +79,7 @@ class CustomerController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data customer berhasil diperbarui',
-            'data'    => $customer
+            'data'    => $customer->fresh() // ✅ return data terbaru dari DB
         ], 200);
     }
 
@@ -88,9 +89,7 @@ class CustomerController extends Controller
     public function destroy($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id);
-        
-        // Ini akan menjalankan Soft Delete karena model menggunakan Trait SoftDeletes
-        $customer->delete();
+        $customer->delete(); // Soft Delete via SoftDeletes trait
 
         return response()->json([
             'success' => true,
