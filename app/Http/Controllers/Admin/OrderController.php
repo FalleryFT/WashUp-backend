@@ -61,9 +61,9 @@ class OrderController extends Controller
 
         // 5. Fitur Sort (Terbaru / Terlama)
         if ($request->filled('sort') && $request->sort === 'oldest') {
-            $query->orderBy('order_date', 'asc');
+            $query->orderBy('created_at', 'asc');
         } else {
-            $query->orderBy('order_date', 'desc');
+            $query->orderBy('created_at', 'desc');
         }
 
         $orders = $query->get();

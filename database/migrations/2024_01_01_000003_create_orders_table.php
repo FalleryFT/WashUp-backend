@@ -24,7 +24,7 @@ return new class extends Migration
             $table->enum('customer_type', ['member', 'non-member'])->default('non-member');
 
             // Detail cucian
-            $table->foreignId('service_id')->constrained('services'); // layanan kiloan
+            $table->foreignId('service_id')->nullable()->constrained('services'); // layanan kiloan
             $table->decimal('weight', 8, 2);                          // berat dalam Kg
             $table->unsignedBigInteger('total_price');                // total harga (Rupiah)
 

@@ -11,6 +11,7 @@ class ServiceSeeder extends Seeder
     {
         // ── KILOAN (harga per Kg) — dari initKiloan Price.jsx ─────────────────
         $kiloan = [
+            ['name' => 'Hanya Satuan', 'price' => 0],
             ['name' => 'Cuci Setrika', 'price' => 7000],
             ['name' => 'Cuci Kering',  'price' => 5000],
             ['name' => 'Setrika Saja', 'price' => 4000],
